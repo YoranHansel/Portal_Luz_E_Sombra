@@ -3,17 +3,21 @@ import {BrowserRouter, Routes, Route} from 'react-router-dom'
 import './App.css'
 import Home from './pages/Home'
 import Login from './pages/Login'
-import Navbar from './pages/Navbar'
+import Cadastrar from './pages/Cadastrar'
+import Agendamento from './pages/Agendamento'
+
 
 function App() {
  
   return (
     <div>
       <BrowserRouter>
-        <Navbar />
         <Routes>
-          <Route path='/' element={<Home/>}/>
+          <Route path='/home' element={<Home/>}/>
+          <Route path='/' element={<Login/>}/>
           <Route path='/login' element={<Login/>}/>
+          <Route path='/cadastrar' element={<Cadastrar/>}/>
+          <Route path='/agendamento' element={<Agendamento/>}/>
         </Routes>
       </BrowserRouter>
     </div>
