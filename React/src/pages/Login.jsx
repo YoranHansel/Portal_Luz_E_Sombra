@@ -1,4 +1,4 @@
-import NavCadastro from './NavCadastro';
+import NavCadastro from '../componets/navigation/NavCadastro';
 
 export default function Login(){
     return (
@@ -9,4 +9,4 @@ export default function Login(){
             <input type="text" placeholder="Senha" />
         </div>
     )
-}
+};
