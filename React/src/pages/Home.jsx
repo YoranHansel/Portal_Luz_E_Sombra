@@ -29,24 +29,42 @@ export default function Home() {
     }, []);
 
     return (
-        <div>
+        <div className="min-h-screen bg-[#111311] text-[#eee9df]">
             <Navbar />
-            <main>
-                <h1>Estúdio Fotográfico Luz &amp; Sombra</h1>
-                <p>Confira alguns dos nossos trabalhos.</p>
-                <section aria-labelledby="albuns-titulo">
-                    <h2 id="albuns-titulo">Álbuns</h2>
-                    {carregando && <p>Carregando álbuns...</p>}
-                    {erro && <p role="alert">{erro}</p>}
+            <main className="mx-auto max-w-6xl px-5 pb-20 sm:px-10">
+                <section className="grid min-h-[520px] items-end gap-10 border-b border-white/10 py-16 md:grid-cols-[1fr_0.75fr] md:py-24">
+                    <div>
+                        <p className="mb-7 font-mono text-xs uppercase tracking-[0.28em] text-[#c89662]">Estúdio autoral · desde 2018</p>
+                        <h1 className="max-w-3xl font-serif text-5xl leading-[0.96] tracking-[-0.04em] text-[#f2ede4] sm:text-7xl md:text-8xl">A luz certa <span className="italic text-[#c89662]">conta</span> tudo.</h1>
+                    </div>
+                    <div className="max-w-sm pb-1 md:justify-self-end">
+                        <p className="text-lg leading-relaxed text-[#aaa99f]">Fotografia com presença, delicadeza e intenção. Criamos imagens que continuam vivas muito depois do clique.</p>
+                        <div className="mt-8 flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-[#eee9df]"><span className="h-px w-10 bg-[#c89662]" /> Explore nosso trabalho</div>
+                    </div>
+                </section>
+                <section aria-labelledby="albuns-titulo" className="pt-16">
+                    <div className="mb-8 flex items-end justify-between gap-4">
+                        <div><p className="mb-2 font-mono text-xs uppercase tracking-[0.2em] text-[#c89662]">Seleção 01</p><h2 id="albuns-titulo" className="font-serif text-4xl text-[#f2ede4]">Histórias em foco</h2></div>
+                        <p className="hidden text-sm text-[#77786f] sm:block">Casamentos · Retratos · Afeto</p>
+                    </div>
+                    {carregando && <p className="py-12 text-[#aaa99f]">Revelando histórias...</p>}
+                    {erro && <p className="py-12 text-[#d9a07e]" role="alert">{erro}</p>}
                     {!carregando && !erro && (
-                        <div>
-                            {albuns.map((album) => (
-                                <article key={album.id}>
-                                    <img
-                                        src={album.thumbnailUrl}
-                                        alt={album.title}
-                                    />
-                                    <h3>{album.title}</h3>
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-5">
+                            {albuns.map((album, index) => (
+                                <article key={album.id} className={`group ${index % 3 === 0 ? 'sm:col-span-2' : ''}`}>
+                                    <div className="aspect-[4/5] overflow-hidden bg-[#252823]">
+                                        <img
+                                            src={`https://images.unsplash.com/photo-${['1519741497674-611481863552', '1537633552985-df8429e8048b', '1511285560929-80b456fea0bc', '1520854221256-17451cc331bf', '1500534623283-312aade485b7', '1504150558240-0b4fd8946624', '1493246507139-91e8fad9978e', '1507504031003-b417219a0fde'][index]}?auto=format&fit=crop&w=800&q=80`}
+                                            alt={album.title}
+                                            onError={(event) => {
+                                                event.currentTarget.onerror = null;
+                                                event.currentTarget.src = 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=800&q=80';
+                                            }}
+                                            className="h-full w-full object-cover grayscale-[20%] transition duration-700 group-hover:scale-105 group-hover:grayscale-0"
+                                        />
+                                    </div>
+                                    <h3 className="mt-3 line-clamp-1 text-xs uppercase tracking-[0.14em] text-[#aaa99f]">{album.title}</h3>
                                 </article>
                             ))}
                         </div>
