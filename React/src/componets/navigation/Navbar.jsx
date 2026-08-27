@@ -14,6 +14,9 @@ export default function Navbar() {
                     <NavLink to="/agendamento" className={({ isActive }) => `rounded-full px-4 py-2 transition ${isActive ? 'bg-[#c89662] text-[#111311]' : 'text-[#aaa99f] hover:text-white'}`}>
                         Agendar
                     </NavLink>
+                    <NavLink to="/sair" className={({ isActive }) => `rounded-full px-4 py-2 transition ${isActive ? 'bg-[#d9a07e] text-[#111311]' : 'text-[#aaa99f] hover:text-white'}`}>
+                        Sair
+                    </NavLink>
                 </div>
             </div>
         </nav>

@@ -49,6 +49,7 @@ export default function Agendamento() {
                     .insert({
                         nome: user.user_metadata?.usuario || user.email,
                         email: user.email,
+                        telefone: user.user_metadata?.telefone || null,
                     })
                     .select('id, nome, email')
                     .single();
