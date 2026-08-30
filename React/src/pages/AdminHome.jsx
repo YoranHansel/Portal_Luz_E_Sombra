@@ -3,20 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { isSupabaseConfigured, supabase } from '../supabase';
 
 const ADMIN_SESSION_KEY = 'luz_sombra_admin_session';
-const TEMPO_ESCONDIDO_APOS_CONCLUSAO = 2 * 60 * 1000;
-
-function agendamentoAindaVisivel(agendamento, concluidosMap) {
-    if (!agendamento || agendamento.status !== 'concluido') {
-        return true;
-    }
-
-    const momentoConclusao = concluidosMap[agendamento.id];
-    if (!momentoConclusao) {
-        return true;
-    }
-
-    return Date.now() - momentoConclusao < TEMPO_ESCONDIDO_APOS_CONCLUSAO;
-}
 
 export default function AdminHome() {
     const navigate = useNavigate();
@@ -26,7 +12,6 @@ export default function AdminHome() {
     const [erro, setErro] = useState('');
     const [sucesso, setSucesso] = useState('');
     const [concluindoId, setConcluindoId] = useState(null);
-    const [concluidosMap, setConcluidosMap] = useState({});
     const [dataDisponibilidade, setDataDisponibilidade] = useState(new Date().toISOString().split('T')[0]);
     const [disponivel, setDisponivel] = useState(true);
     const [motivoIndisponibilidade, setMotivoIndisponibilidade] = useState('');
@@ -61,32 +46,35 @@ export default function AdminHome() {
                 return;
             }
 
-            const { data, error } = await supabase
+            // 1. Busca os agendamentos e o tipo de ensaio
+            const { data: rawAgendamentos, error } = await supabase
                 .from('agendamentos')
-                .select(
-                    `id, cliente_id, data_pretendida, horario, status, observacoes, created_at,
-                    tipos_ensaio(nome),
-                    clientes(nome, email, telefone)`
-                )
+                .select(`
+                    id, cliente_id, data_pretendida, horario, status, observacoes, created_at,
+                    tipos_ensaio ( nome )
+                `)
                 .order('data_pretendida', { ascending: true });
 
             if (error) {
+                console.error('Erro ao buscar agendamentos:', error);
                 setErro(`Não foi possível carregar os agendamentos: ${error.message}`);
                 setCarregando(false);
                 return;
             }
 
-            const agendamentosComCliente = data || [];
-            const idsClientes = [...new Set(agendamentosComCliente.map((item) => item.cliente_id).filter(Boolean))];
+            const listaAgendamentos = rawAgendamentos || [];
+
+            // 2. Coleta os IDs dos clientes para buscar os dados de perfil de forma segura
+            const idsClientes = [...new Set(listaAgendamentos.map((item) => item.cliente_id).filter(Boolean))];
 
             let clientesMap = {};
             if (idsClientes.length > 0) {
-                const { data: clientesData, error: erroClientes } = await supabase
+                const { data: clientesData } = await supabase
                     .from('clientes')
                     .select('id, nome, email, telefone')
                     .in('id', idsClientes);
 
-                if (!erroClientes && clientesData) {
+                if (clientesData) {
                     clientesMap = clientesData.reduce((acc, cliente) => {
                         acc[cliente.id] = cliente;
                         return acc;
@@ -94,19 +82,18 @@ export default function AdminHome() {
                 }
             }
 
-            const agendamentosFormatados = agendamentosComCliente.map((agendamento) => ({
+            // 3. Monta o objeto final associando os clientes aos agendamentos
+            const agendamentosFormatados = listaAgendamentos.map((agendamento) => ({
                 ...agendamento,
-                clientes: agendamento.clientes || clientesMap[agendamento.cliente_id] || null,
+                clientes: clientesMap[agendamento.cliente_id] || { nome: 'Cliente não vinculado', email: '-', telefone: '-' },
             }));
 
-            const agendamentosVisiveis = agendamentosFormatados.filter((agendamento) => agendamentoAindaVisivel(agendamento, concluidosMap));
-
-            setAgendamentos(agendamentosVisiveis);
+            setAgendamentos(agendamentosFormatados);
             setCarregando(false);
         }
 
         carregarAgendamentos();
-    }, [admin, concluidosMap]);
+    }, [admin]);
 
     useEffect(() => {
         if (!admin || !isSupabaseConfigured) {
@@ -153,30 +140,14 @@ export default function AdminHome() {
             return;
         }
 
-        const momentoConclusao = Date.now();
-
-        setConcluidosMap((itens) => ({
-            ...itens,
-            [agendamentoId]: momentoConclusao,
-        }));
-
+        // Atualiza o estado localmente sem ocultar da tela
         setAgendamentos((itens) =>
-            itens
-                .map((item) =>
-                    item.id === agendamentoId
-                        ? { ...item, status: 'concluido' }
-                        : item
-                )
-                .filter((item) => agendamentoAindaVisivel(item, { ...concluidosMap, [agendamentoId]: momentoConclusao }))
+            itens.map((item) =>
+                item.id === agendamentoId
+                    ? { ...item, status: 'concluido' }
+                    : item
+            )
         );
-
-        window.setTimeout(() => {
-            setConcluidosMap((itens) => {
-                const atualizado = { ...itens };
-                delete atualizado[agendamentoId];
-                return atualizado;
-            });
-        }, TEMPO_ESCONDIDO_APOS_CONCLUSAO);
 
         setConcluindoId(null);
     }
@@ -325,7 +296,7 @@ export default function AdminHome() {
                             return (
                                 <article
                                     key={agendamento.id}
-                                    className="border border-white/10 bg-white/[0.03] p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.02)]"
+                                    className="border border-white/10 bg-[#171a17] p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.02)]"
                                 >
                                     <div className="flex items-start justify-between gap-4">
                                         <div>

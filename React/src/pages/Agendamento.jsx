@@ -3,20 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../componets/navigation/Navbar';
 import { isSupabaseConfigured, supabase } from '../supabase';
 
-const TEMPO_ESCONDIDO_APOS_CONCLUSAO = 2 * 60 * 1000;
-
-function agendamentoAindaVisivel(agendamento) {
-    if (!agendamento || agendamento.status !== 'concluido') {
-        return true;
-    }
-
-    if (!agendamento.concluido_em) {
-        return true;
-    }
-
-    return Date.now() - new Date(agendamento.concluido_em).getTime() < TEMPO_ESCONDIDO_APOS_CONCLUSAO;
-}
-
 export default function Agendamento() {
     const navigate = useNavigate();
     const [tipoEnsaio, setTipoEnsaio] = useState('');
@@ -101,6 +87,7 @@ export default function Agendamento() {
             if (!tipos?.length) {
                 setErro('Nenhum tipo de ensaio está cadastrado. Insira os tipos no Supabase antes de agendar.');
             }
+
             const { data, error } = await supabase
                 .from('agendamentos')
                 .select('id, tipo_ensaio_id, data_pretendida, horario, status, observacoes, created_at, tipos_ensaio(nome)')
@@ -110,7 +97,7 @@ export default function Agendamento() {
             if (error) {
                 setErro(`Não foi possível carregar seus agendamentos: ${error.message}`);
             } else {
-                setAgendamentos((data || []).filter(agendamentoAindaVisivel));
+                setAgendamentos(data || []);
             }
             setCarregandoAgendamentos(false);
         }
@@ -178,7 +165,7 @@ export default function Agendamento() {
         }
 
         carregarFotografasDisponiveis();
-    }, [dataPretendida]);
+    }, [dataPretendida, fotografaSelecionada]);
 
     async function handleSubmit(event) {
         event.preventDefault();
@@ -275,7 +262,7 @@ export default function Agendamento() {
             .select('id, tipo_ensaio_id, data_pretendida, horario, status, observacoes, created_at, tipos_ensaio(nome)')
             .eq('cliente_id', clienteAtual.id)
             .order('data_pretendida', { ascending: true });
-        setAgendamentos((data || []).filter(agendamentoAindaVisivel));
+        setAgendamentos(data || []);
     }
 
     const dataMinima = new Date().toISOString().split('T')[0];
