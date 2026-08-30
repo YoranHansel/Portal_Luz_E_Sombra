@@ -3,6 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { isSupabaseConfigured, supabase } from '../supabase';
 
 const ADMIN_SESSION_KEY = 'luz_sombra_admin_session';
+const TEMPO_ESCONDIDO_APOS_CONCLUSAO = 2 * 60 * 1000;
+
+function deveEsconderAgendamentoConcluido(agendamento) {
+    if (!agendamento || agendamento.status !== 'concluido' || !agendamento.concluido_em) {
+        return false;
+    }
+
+    return Date.now() - new Date(agendamento.concluido_em).getTime() >= TEMPO_ESCONDIDO_APOS_CONCLUSAO;
+}
 
 export default function AdminHome() {
     const navigate = useNavigate();
@@ -14,6 +23,7 @@ export default function AdminHome() {
     const [concluindoId, setConcluindoId] = useState(null);
     const [dataDisponibilidade, setDataDisponibilidade] = useState(new Date().toISOString().split('T')[0]);
     const [disponivel, setDisponivel] = useState(true);
+    const [motivoIndisponibilidade, setMotivoIndisponibilidade] = useState('');
     const [salvandoDisponibilidade, setSalvandoDisponibilidade] = useState(false);
 
     useEffect(() => {
@@ -48,9 +58,9 @@ export default function AdminHome() {
             const { data, error } = await supabase
                 .from('agendamentos')
                 .select(
-                    `id, data_pretendida, horario, status, observacoes, created_at,
-                    clientes(nome, email, telefone),
-                    tipos_ensaio(nome)`
+                    `id, cliente_id, data_pretendida, horario, status, observacoes, created_at,
+                    tipos_ensaio(nome),
+                    clientes(nome, email, telefone)`
                 )
                 .order('data_pretendida', { ascending: true });
 
@@ -60,7 +70,32 @@ export default function AdminHome() {
                 return;
             }
 
-            setAgendamentos(data || []);
+            const agendamentosComCliente = data || [];
+            const idsClientes = [...new Set(agendamentosComCliente.map((item) => item.cliente_id).filter(Boolean))];
+
+            let clientesMap = {};
+            if (idsClientes.length > 0) {
+                const { data: clientesData, error: erroClientes } = await supabase
+                    .from('clientes')
+                    .select('id, nome, email, telefone')
+                    .in('id', idsClientes);
+
+                if (!erroClientes && clientesData) {
+                    clientesMap = clientesData.reduce((acc, cliente) => {
+                        acc[cliente.id] = cliente;
+                        return acc;
+                    }, {});
+                }
+            }
+
+            const agendamentosFormatados = agendamentosComCliente.map((agendamento) => ({
+                ...agendamento,
+                clientes: agendamento.clientes || clientesMap[agendamento.cliente_id] || null,
+            }));
+
+            const agendamentosVisiveis = agendamentosFormatados.filter((agendamento) => !deveEsconderAgendamentoConcluido(agendamento));
+
+            setAgendamentos(agendamentosVisiveis);
             setCarregando(false);
         }
 
@@ -85,6 +120,7 @@ export default function AdminHome() {
             }
 
             setDisponivel(data?.disponivel ?? true);
+            setMotivoIndisponibilidade(data?.motivo ?? '');
         }
 
         carregarDisponibilidade();
@@ -111,13 +147,20 @@ export default function AdminHome() {
             return;
         }
 
+        const concluidoEm = new Date().toISOString();
+
         setAgendamentos((itens) =>
             itens.map((item) =>
                 item.id === agendamentoId
-                    ? { ...item, status: 'concluido' }
+                    ? { ...item, status: 'concluido', concluido_em: concluidoEm }
                     : item
             )
         );
+
+        window.setTimeout(() => {
+            setAgendamentos((itens) => itens.filter((item) => item.id !== agendamentoId));
+        }, TEMPO_ESCONDIDO_APOS_CONCLUSAO);
+
         setConcluindoId(null);
     }
 
@@ -132,10 +175,16 @@ export default function AdminHome() {
             return;
         }
 
+        if (!disponivel && !motivoIndisponibilidade.trim()) {
+            setErro('Informe o motivo da indisponibilidade antes de salvar.');
+            setSalvandoDisponibilidade(false);
+            return;
+        }
+
         const { error } = await supabase.from('disponibilidade').upsert({
             data: dataDisponibilidade,
             disponivel: disponivel,
-            motivo: disponivel ? null : 'Indisponível pela administração',
+            motivo: disponivel ? null : motivoIndisponibilidade.trim(),
         }, { onConflict: 'data' });
 
         if (error) {
@@ -144,7 +193,7 @@ export default function AdminHome() {
             return;
         }
 
-        setSucesso(disponivel ? 'Data marcada como disponível.' : 'Data marcada como indisponível.');
+        setSucesso(disponivel ? 'Data marcada como disponível. Motivo limpo automaticamente.' : 'Data marcada como indisponível.');
         setSalvandoDisponibilidade(false);
     }
 
@@ -198,11 +247,32 @@ export default function AdminHome() {
                         />
                         <button
                             type="button"
-                            onClick={() => setDisponivel((valor) => !valor)}
+                            onClick={() => {
+                                setDisponivel((valor) => {
+                                    const proximo = !valor;
+                                    if (proximo) {
+                                        setMotivoIndisponibilidade('');
+                                    }
+                                    return proximo;
+                                });
+                            }}
                             className="border border-white/15 px-4 py-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[#eee9df] transition hover:border-[#c89662] hover:text-[#c89662]"
                         >
                             {disponivel ? 'Marcar como indisponível' : 'Marcar como disponível'}
                         </button>
+                        {!disponivel && (
+                            <div className="flex flex-col gap-2">
+                                <label className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#aaa99f]" htmlFor="motivoIndisponibilidade">Motivo da indisponibilidade</label>
+                                <textarea
+                                    id="motivoIndisponibilidade"
+                                    rows={3}
+                                    value={motivoIndisponibilidade}
+                                    onChange={(event) => setMotivoIndisponibilidade(event.target.value)}
+                                    className="border border-white/10 bg-transparent px-3 py-2 text-sm text-[#f2ede4] outline-none placeholder:text-[#77786f] focus:border-[#c89662]"
+                                    placeholder="Ex: viagem, bloqueio de agenda, manutenção etc."
+                                />
+                            </div>
+                        )}
                         <button
                             type="button"
                             onClick={salvarDisponibilidade}
