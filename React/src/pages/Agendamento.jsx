@@ -22,6 +22,8 @@ export default function Agendamento() {
     const [tipoEnsaio, setTipoEnsaio] = useState('');
     const [tiposEnsaio, setTiposEnsaio] = useState([]);
     const [dataPretendida, setDataPretendida] = useState('');
+    const [horario, setHorario] = useState('');
+    const [observacoes, setObservacoes] = useState('');
     const [fotografaSelecionada, setFotografaSelecionada] = useState('');
     const [fotografasDisponiveis, setFotografasDisponiveis] = useState([]);
     const [agendamentos, setAgendamentos] = useState([]);
@@ -193,6 +195,16 @@ export default function Agendamento() {
             return;
         }
 
+        if (!horario.trim()) {
+            setErro('Informe o horário desejado para o agendamento.');
+            return;
+        }
+
+        if (!observacoes.trim()) {
+            setErro('Descreva suas observações antes de enviar o agendamento.');
+            return;
+        }
+
         if (!fotografaSelecionada) {
             setErro('Selecione uma fotógrafa disponível para esta data.');
             return;
@@ -221,6 +233,8 @@ export default function Agendamento() {
             cliente_id: clienteAtual.id,
             tipo_ensaio_id: tipoSelecionado.id,
             data_pretendida: dataPretendida,
+            horario: horario.trim(),
+            observacoes: observacoes.trim(),
             fotografa_id: fotografaSelecionada,
         };
 
@@ -231,6 +245,8 @@ export default function Agendamento() {
                 cliente_id: clienteAtual.id,
                 tipo_ensaio_id: tipoSelecionado.id,
                 data_pretendida: dataPretendida,
+                horario: horario.trim(),
+                observacoes: observacoes.trim(),
             });
             error = erroSemFotografa;
         }
@@ -248,6 +264,8 @@ export default function Agendamento() {
         setMensagem('Solicitação enviada. Aguarde a confirmação da fotógrafa.');
         setTipoEnsaio('');
         setDataPretendida('');
+        setHorario('');
+        setObservacoes('');
         setFotografaSelecionada('');
         setFotografasDisponiveis([]);
         setCarregando(false);
@@ -293,6 +311,25 @@ export default function Agendamento() {
                         min={dataMinima}
                         value={dataPretendida}
                         onChange={(event) => setDataPretendida(event.target.value)}
+                        required
+                    />
+                    <label className="mb-3 block font-mono text-xs uppercase tracking-[0.18em] text-[#aaa99f]" htmlFor="horario">Horário desejado</label>
+                    <input
+                        className="mb-8 w-full border-b border-white/20 bg-transparent px-0 py-4 text-lg text-[#f2ede4] outline-none transition focus:border-[#c89662] [color-scheme:dark]"
+                        id="horario"
+                        type="time"
+                        value={horario}
+                        onChange={(event) => setHorario(event.target.value)}
+                        required
+                    />
+                    <label className="mb-3 block font-mono text-xs uppercase tracking-[0.18em] text-[#aaa99f]" htmlFor="observacoes">Observações</label>
+                    <textarea
+                        className="mb-8 w-full resize-none border-b border-white/20 bg-transparent px-0 py-4 text-lg text-[#f2ede4] outline-none transition focus:border-[#c89662]"
+                        id="observacoes"
+                        rows={4}
+                        value={observacoes}
+                        onChange={(event) => setObservacoes(event.target.value)}
+                        placeholder="Descreva o conceito, local, estilo ou detalhes do ensaio"
                         required
                     />
                     <label className="mb-3 block font-mono text-xs uppercase tracking-[0.18em] text-[#aaa99f]" htmlFor="fotografaSelecionada">Fotógrafa disponível</label>
