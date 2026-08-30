@@ -8,6 +8,8 @@ export default function Agendamento() {
     const [tipoEnsaio, setTipoEnsaio] = useState('');
     const [tiposEnsaio, setTiposEnsaio] = useState([]);
     const [dataPretendida, setDataPretendida] = useState('');
+    const [fotografaSelecionada, setFotografaSelecionada] = useState('');
+    const [fotografasDisponiveis, setFotografasDisponiveis] = useState([]);
     const [agendamentos, setAgendamentos] = useState([]);
     const [clienteAtual, setClienteAtual] = useState(null);
     const [erro, setErro] = useState('');
@@ -100,6 +102,68 @@ export default function Agendamento() {
         carregarAgendamentos();
     }, [navigate]);
 
+    useEffect(() => {
+        async function carregarFotografasDisponiveis() {
+            if (!dataPretendida || !isSupabaseConfigured) {
+                setFotografasDisponiveis([]);
+                setFotografaSelecionada('');
+                return;
+            }
+
+            const { data: disponibilidadeData, error: erroDisponibilidade } = await supabase
+                .from('disponibilidade')
+                .select('data, disponivel')
+                .eq('data', dataPretendida)
+                .maybeSingle();
+
+            if (erroDisponibilidade) {
+                setErro(`Não foi possível verificar a disponibilidade: ${erroDisponibilidade.message}`);
+                setFotografasDisponiveis([]);
+                return;
+            }
+
+            if (!disponibilidadeData) {
+                const { error: erroCriar } = await supabase.from('disponibilidade').upsert({
+                    data: dataPretendida,
+                    disponivel: true,
+                    motivo: null,
+                }, { onConflict: 'data' });
+
+                if (erroCriar) {
+                    setErro(`Não foi possível registrar a disponibilidade da data: ${erroCriar.message}`);
+                    setFotografasDisponiveis([]);
+                    return;
+                }
+            }
+
+            const { data: fotografas, error: erroFotografas } = await supabase
+                .from('perfis')
+                .select('id, nome, papel')
+                .eq('papel', 'fotografa')
+                .order('nome');
+
+            if (erroFotografas) {
+                setErro(`Não foi possível carregar as fotógrafas: ${erroFotografas.message}`);
+                setFotografasDisponiveis([]);
+                return;
+            }
+
+            const dataDisponivel = disponibilidadeData ? disponibilidadeData.disponivel !== false : true;
+            setFotografasDisponiveis(dataDisponivel ? fotografas || [] : []);
+
+            if (!dataDisponivel) {
+                setFotografaSelecionada('');
+                return;
+            }
+
+            if (fotografas?.length && !fotografas.some((fotografa) => fotografa.id === fotografaSelecionada)) {
+                setFotografaSelecionada(fotografas[0].id);
+            }
+        }
+
+        carregarFotografasDisponiveis();
+    }, [dataPretendida]);
+
     async function handleSubmit(event) {
         event.preventDefault();
         setErro('');
@@ -112,6 +176,11 @@ export default function Agendamento() {
 
         if (!dataPretendida) {
             setErro('Informe a data pretendida.');
+            return;
+        }
+
+        if (!fotografaSelecionada) {
+            setErro('Selecione uma fotógrafa disponível para esta data.');
             return;
         }
 
@@ -133,11 +202,24 @@ export default function Agendamento() {
             setCarregando(false);
             return;
         }
-        const { error } = await supabase.from('agendamentos').insert({
+
+        const payload = {
             cliente_id: clienteAtual.id,
             tipo_ensaio_id: tipoSelecionado.id,
             data_pretendida: dataPretendida,
-        });
+            fotografa_id: fotografaSelecionada,
+        };
+
+        let { error } = await supabase.from('agendamentos').insert(payload);
+
+        if (error && error.message && error.message.toLowerCase().includes('fotografa_id')) {
+            const { error: erroSemFotografa } = await supabase.from('agendamentos').insert({
+                cliente_id: clienteAtual.id,
+                tipo_ensaio_id: tipoSelecionado.id,
+                data_pretendida: dataPretendida,
+            });
+            error = erroSemFotografa;
+        }
 
         if (error) {
             if (error.code === '42501') {
@@ -152,6 +234,8 @@ export default function Agendamento() {
         setMensagem('Solicitação enviada. Aguarde a confirmação da fotógrafa.');
         setTipoEnsaio('');
         setDataPretendida('');
+        setFotografaSelecionada('');
+        setFotografasDisponiveis([]);
         setCarregando(false);
 
         const { data } = await supabase
@@ -196,9 +280,22 @@ export default function Agendamento() {
                         onChange={(event) => setDataPretendida(event.target.value)}
                         required
                     />
+                    <label className="mb-3 block font-mono text-xs uppercase tracking-[0.18em] text-[#aaa99f]" htmlFor="fotografaSelecionada">Fotógrafa disponível</label>
+                    <select
+                        className="mb-8 w-full border-b border-white/20 bg-transparent px-0 py-4 text-lg text-[#f2ede4] outline-none transition focus:border-[#c89662]"
+                        id="fotografaSelecionada"
+                        value={fotografaSelecionada}
+                        onChange={(event) => setFotografaSelecionada(event.target.value)}
+                        disabled={!fotografasDisponiveis.length}
+                    >
+                        <option value="">{dataPretendida ? 'Selecione uma fotógrafa disponível' : 'Escolha a data primeiro'}</option>
+                        {fotografasDisponiveis.map((fotografa) => (
+                            <option key={fotografa.id} value={fotografa.id}>{fotografa.nome}</option>
+                        ))}
+                    </select>
                     {erro && <p className="mb-5 text-sm text-[#d9a07e]" role="alert">{erro}</p>}
                     {mensagem && <p className="mb-5 text-sm text-[#b5c8a2]" role="status">{mensagem}</p>}
-                    <button className="mt-2 w-full bg-[#eee9df] px-6 py-4 text-xs font-bold uppercase tracking-[0.2em] text-[#111311] transition hover:bg-[#c89662] disabled:cursor-wait disabled:opacity-60" type="submit" disabled={carregando || !clienteAtual || !tipoEnsaio}>
+                    <button className="mt-2 w-full bg-[#eee9df] px-6 py-4 text-xs font-bold uppercase tracking-[0.2em] text-[#111311] transition hover:bg-[#c89662] disabled:cursor-wait disabled:opacity-60" type="submit" disabled={carregando || !clienteAtual || !tipoEnsaio || !fotografaSelecionada}>
                         {carregando ? 'Enviando...' : 'Solicitar agendamento'}
                     </button>
                 </form>

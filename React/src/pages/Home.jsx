@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import Navbar from '../componets/navigation/Navbar';
+import { isSupabaseConfigured, supabase } from '../supabase';
 
 export default function Home() {
     const [albuns, setAlbuns] = useState([]);
@@ -9,15 +10,26 @@ export default function Home() {
     useEffect(() => {
         async function carregarAlbuns() {
             try {
-                const resposta = await fetch(
-                    'https://jsonplaceholder.typicode.com/photos?_limit=8'
-                );
-
-                if (!resposta.ok) {
-                    throw new Error('Não foi possível carregar os álbuns.');
+                if (!isSupabaseConfigured) {
+                    setErro('Configure o Supabase no arquivo React/.env antes de carregar os álbuns.');
+                    setCarregando(false);
+                    return;
                 }
 
-                setAlbuns(await resposta.json());
+                const { data, error } = await supabase
+                    .from('albuns')
+                    .select(
+                        `id, titulo, descricao, capa_url, created_at,
+                        tipos_ensaio(nome),
+                        fotos(url_imagem, ordem)`
+                    )
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    throw new Error(error.message);
+                }
+
+                setAlbuns(data || []);
             } catch {
                 setErro('Não foi possível carregar os álbuns no momento.');
             } finally {
@@ -51,22 +63,28 @@ export default function Home() {
                     {erro && <p className="py-12 text-[#d9a07e]" role="alert">{erro}</p>}
                     {!carregando && !erro && (
                         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-5">
-                            {albuns.map((album, index) => (
-                                <article key={album.id} className={`group ${index % 3 === 0 ? 'sm:col-span-2' : ''}`}>
-                                    <div className="aspect-[4/5] overflow-hidden bg-[#252823]">
-                                        <img
-                                            src={`https://images.unsplash.com/photo-${['1519741497674-611481863552', '1537633552985-df8429e8048b', '1511285560929-80b456fea0bc', '1520854221256-17451cc331bf', '1500534623283-312aade485b7', '1504150558240-0b4fd8946624', '1493246507139-91e8fad9978e', '1507504031003-b417219a0fde'][index]}?auto=format&fit=crop&w=800&q=80`}
-                                            alt={album.title}
-                                            onError={(event) => {
-                                                event.currentTarget.onerror = null;
-                                                event.currentTarget.src = 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=800&q=80';
-                                            }}
-                                            className="h-full w-full object-cover grayscale-[20%] transition duration-700 group-hover:scale-105 group-hover:grayscale-0"
-                                        />
-                                    </div>
-                                    <h3 className="mt-3 line-clamp-1 text-xs uppercase tracking-[0.14em] text-[#aaa99f]">{album.title}</h3>
-                                </article>
-                            ))}
+                            {albuns.map((album, index) => {
+                                const capa = album.capa_url || album.fotos?.[0]?.url_imagem || 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=800&q=80';
+                                return (
+                                    <article key={album.id} className={`group ${index % 3 === 0 ? 'sm:col-span-2' : ''}`}>
+                                        <div className="aspect-[4/5] overflow-hidden bg-[#252823]">
+                                            <img
+                                                src={capa}
+                                                alt={album.titulo}
+                                                onError={(event) => {
+                                                    event.currentTarget.onerror = null;
+                                                    event.currentTarget.src = 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=800&q=80';
+                                                }}
+                                                className="h-full w-full object-cover grayscale-[20%] transition duration-700 group-hover:scale-105 group-hover:grayscale-0"
+                                            />
+                                        </div>
+                                        <h3 className="mt-3 line-clamp-1 text-xs uppercase tracking-[0.14em] text-[#aaa99f]">{album.titulo}</h3>
+                                        {album.tipos_ensaio?.nome && (
+                                            <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-[#77786f]">{album.tipos_ensaio.nome}</p>
+                                        )}
+                                    </article>
+                                );
+                            })}
                         </div>
                     )}
                 </section>
