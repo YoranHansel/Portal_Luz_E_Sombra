@@ -3,6 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../componets/navigation/Navbar';
 import { isSupabaseConfigured, supabase } from '../supabase';
 
+const TEMPO_ESCONDIDO_APOS_CONCLUSAO = 2 * 60 * 1000;
+
+function agendamentoAindaVisivel(agendamento) {
+    if (!agendamento || agendamento.status !== 'concluido' || !agendamento.concluido_em) {
+        return true;
+    }
+
+    return Date.now() - new Date(agendamento.concluido_em).getTime() < TEMPO_ESCONDIDO_APOS_CONCLUSAO;
+}
+
 export default function Agendamento() {
     const navigate = useNavigate();
     const [tipoEnsaio, setTipoEnsaio] = useState('');
@@ -87,14 +97,14 @@ export default function Agendamento() {
             }
             const { data, error } = await supabase
                 .from('agendamentos')
-                .select('id, tipo_ensaio_id, data_pretendida, horario, status, observacoes, created_at, tipos_ensaio(nome)')
+                .select('id, tipo_ensaio_id, data_pretendida, horario, status, observacoes, created_at, concluido_em, tipos_ensaio(nome)')
                 .eq('cliente_id', clienteEncontrado.id)
                 .order('data_pretendida', { ascending: true });
 
             if (error) {
                 setErro(`Não foi possível carregar seus agendamentos: ${error.message}`);
             } else {
-                setAgendamentos(data || []);
+                setAgendamentos((data || []).filter(agendamentoAindaVisivel));
             }
             setCarregandoAgendamentos(false);
         }
@@ -240,10 +250,10 @@ export default function Agendamento() {
 
         const { data } = await supabase
             .from('agendamentos')
-            .select('id, tipo_ensaio_id, data_pretendida, horario, status, observacoes, created_at, tipos_ensaio(nome)')
+            .select('id, tipo_ensaio_id, data_pretendida, horario, status, observacoes, created_at, concluido_em, tipos_ensaio(nome)')
             .eq('cliente_id', clienteAtual.id)
             .order('data_pretendida', { ascending: true });
-        setAgendamentos(data || []);
+        setAgendamentos((data || []).filter(agendamentoAindaVisivel));
     }
 
     const dataMinima = new Date().toISOString().split('T')[0];

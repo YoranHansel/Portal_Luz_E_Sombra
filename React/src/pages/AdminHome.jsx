@@ -5,12 +5,12 @@ import { isSupabaseConfigured, supabase } from '../supabase';
 const ADMIN_SESSION_KEY = 'luz_sombra_admin_session';
 const TEMPO_ESCONDIDO_APOS_CONCLUSAO = 2 * 60 * 1000;
 
-function deveEsconderAgendamentoConcluido(agendamento) {
+function agendamentoAindaVisivel(agendamento) {
     if (!agendamento || agendamento.status !== 'concluido' || !agendamento.concluido_em) {
-        return false;
+        return true;
     }
 
-    return Date.now() - new Date(agendamento.concluido_em).getTime() >= TEMPO_ESCONDIDO_APOS_CONCLUSAO;
+    return Date.now() - new Date(agendamento.concluido_em).getTime() < TEMPO_ESCONDIDO_APOS_CONCLUSAO;
 }
 
 export default function AdminHome() {
@@ -58,7 +58,7 @@ export default function AdminHome() {
             const { data, error } = await supabase
                 .from('agendamentos')
                 .select(
-                    `id, cliente_id, data_pretendida, horario, status, observacoes, created_at,
+                    `id, cliente_id, data_pretendida, horario, status, observacoes, created_at, concluido_em,
                     tipos_ensaio(nome),
                     clientes(nome, email, telefone)`
                 )
@@ -93,7 +93,7 @@ export default function AdminHome() {
                 clientes: agendamento.clientes || clientesMap[agendamento.cliente_id] || null,
             }));
 
-            const agendamentosVisiveis = agendamentosFormatados.filter((agendamento) => !deveEsconderAgendamentoConcluido(agendamento));
+            const agendamentosVisiveis = agendamentosFormatados.filter(agendamentoAindaVisivel);
 
             setAgendamentos(agendamentosVisiveis);
             setCarregando(false);
@@ -138,7 +138,7 @@ export default function AdminHome() {
 
         const { error } = await supabase
             .from('agendamentos')
-            .update({ status: 'concluido' })
+            .update({ status: 'concluido', concluido_em: new Date().toISOString() })
             .eq('id', agendamentoId);
 
         if (error) {
@@ -150,11 +150,13 @@ export default function AdminHome() {
         const concluidoEm = new Date().toISOString();
 
         setAgendamentos((itens) =>
-            itens.map((item) =>
-                item.id === agendamentoId
-                    ? { ...item, status: 'concluido', concluido_em: concluidoEm }
-                    : item
-            )
+            itens
+                .map((item) =>
+                    item.id === agendamentoId
+                        ? { ...item, status: 'concluido', concluido_em: concluidoEm }
+                        : item
+                )
+                .filter(agendamentoAindaVisivel)
         );
 
         window.setTimeout(() => {
