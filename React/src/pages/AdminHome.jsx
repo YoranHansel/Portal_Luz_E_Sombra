@@ -6,7 +6,11 @@ const ADMIN_SESSION_KEY = 'luz_sombra_admin_session';
 const TEMPO_ESCONDIDO_APOS_CONCLUSAO = 2 * 60 * 1000;
 
 function agendamentoAindaVisivel(agendamento) {
-    if (!agendamento || agendamento.status !== 'concluido' || !agendamento.concluido_em) {
+    if (!agendamento || agendamento.status !== 'concluido') {
+        return true;
+    }
+
+    if (!agendamento.concluido_em) {
         return true;
     }
 
@@ -58,7 +62,7 @@ export default function AdminHome() {
             const { data, error } = await supabase
                 .from('agendamentos')
                 .select(
-                    `id, cliente_id, data_pretendida, horario, status, observacoes, created_at, concluido_em,
+                    `id, cliente_id, data_pretendida, horario, status, observacoes, created_at,
                     tipos_ensaio(nome),
                     clientes(nome, email, telefone)`
                 )
@@ -138,7 +142,7 @@ export default function AdminHome() {
 
         const { error } = await supabase
             .from('agendamentos')
-            .update({ status: 'concluido', concluido_em: new Date().toISOString() })
+            .update({ status: 'concluido' })
             .eq('id', agendamentoId);
 
         if (error) {
