@@ -5,16 +5,17 @@ import { isSupabaseConfigured, supabase } from '../supabase';
 const ADMIN_SESSION_KEY = 'luz_sombra_admin_session';
 const TEMPO_ESCONDIDO_APOS_CONCLUSAO = 2 * 60 * 1000;
 
-function agendamentoAindaVisivel(agendamento) {
+function agendamentoAindaVisivel(agendamento, concluidosMap) {
     if (!agendamento || agendamento.status !== 'concluido') {
         return true;
     }
 
-    if (!agendamento.concluido_em) {
+    const momentoConclusao = concluidosMap[agendamento.id];
+    if (!momentoConclusao) {
         return true;
     }
 
-    return Date.now() - new Date(agendamento.concluido_em).getTime() < TEMPO_ESCONDIDO_APOS_CONCLUSAO;
+    return Date.now() - momentoConclusao < TEMPO_ESCONDIDO_APOS_CONCLUSAO;
 }
 
 export default function AdminHome() {
@@ -25,6 +26,7 @@ export default function AdminHome() {
     const [erro, setErro] = useState('');
     const [sucesso, setSucesso] = useState('');
     const [concluindoId, setConcluindoId] = useState(null);
+    const [concluidosMap, setConcluidosMap] = useState({});
     const [dataDisponibilidade, setDataDisponibilidade] = useState(new Date().toISOString().split('T')[0]);
     const [disponivel, setDisponivel] = useState(true);
     const [motivoIndisponibilidade, setMotivoIndisponibilidade] = useState('');
@@ -97,14 +99,14 @@ export default function AdminHome() {
                 clientes: agendamento.clientes || clientesMap[agendamento.cliente_id] || null,
             }));
 
-            const agendamentosVisiveis = agendamentosFormatados.filter(agendamentoAindaVisivel);
+            const agendamentosVisiveis = agendamentosFormatados.filter((agendamento) => agendamentoAindaVisivel(agendamento, concluidosMap));
 
             setAgendamentos(agendamentosVisiveis);
             setCarregando(false);
         }
 
         carregarAgendamentos();
-    }, [admin]);
+    }, [admin, concluidosMap]);
 
     useEffect(() => {
         if (!admin || !isSupabaseConfigured) {
@@ -151,20 +153,29 @@ export default function AdminHome() {
             return;
         }
 
-        const concluidoEm = new Date().toISOString();
+        const momentoConclusao = Date.now();
+
+        setConcluidosMap((itens) => ({
+            ...itens,
+            [agendamentoId]: momentoConclusao,
+        }));
 
         setAgendamentos((itens) =>
             itens
                 .map((item) =>
                     item.id === agendamentoId
-                        ? { ...item, status: 'concluido', concluido_em: concluidoEm }
+                        ? { ...item, status: 'concluido' }
                         : item
                 )
-                .filter(agendamentoAindaVisivel)
+                .filter((item) => agendamentoAindaVisivel(item, { ...concluidosMap, [agendamentoId]: momentoConclusao }))
         );
 
         window.setTimeout(() => {
-            setAgendamentos((itens) => itens.filter((item) => item.id !== agendamentoId));
+            setConcluidosMap((itens) => {
+                const atualizado = { ...itens };
+                delete atualizado[agendamentoId];
+                return atualizado;
+            });
         }, TEMPO_ESCONDIDO_APOS_CONCLUSAO);
 
         setConcluindoId(null);
