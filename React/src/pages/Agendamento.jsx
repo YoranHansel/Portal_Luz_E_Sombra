@@ -279,10 +279,11 @@ export default function Agendamento() {
                         id="tipoEnsaio"
                         value={tipoEnsaio}
                         onChange={(event) => setTipoEnsaio(event.target.value)}
+                        style={{ colorScheme: 'dark' }}
                         required
                     >
-                        <option value="">Selecione uma opção</option>
-                        {tiposEnsaio.map((tipo) => <option key={tipo.id} value={tipo.id}>{tipo.nome}</option>)}
+                        <option value="" style={{ color: '#111311', backgroundColor: '#111311' }}>Selecione uma opção</option>
+                        {tiposEnsaio.map((tipo) => <option key={tipo.id} value={tipo.id} style={{ color: '#111311', backgroundColor: '#111311' }}>{tipo.nome}</option>)}
                     </select>
                     <label className="mb-3 block font-mono text-xs uppercase tracking-[0.18em] text-[#aaa99f]" htmlFor="dataPretendida">Data pretendida</label>
                     <input
@@ -300,11 +301,12 @@ export default function Agendamento() {
                         id="fotografaSelecionada"
                         value={fotografaSelecionada}
                         onChange={(event) => setFotografaSelecionada(event.target.value)}
+                        style={{ colorScheme: 'dark' }}
                         disabled={!fotografasDisponiveis.length}
                     >
-                        <option value="">{dataPretendida ? 'Selecione uma fotógrafa disponível' : 'Escolha a data primeiro'}</option>
+                        <option value="" style={{ color: '#111311', backgroundColor: '#111311' }}>{dataPretendida ? 'Selecione uma fotógrafa disponível' : 'Escolha a data primeiro'}</option>
                         {fotografasDisponiveis.map((fotografa) => (
-                            <option key={fotografa.id} value={fotografa.id}>{fotografa.nome}</option>
+                            <option key={fotografa.id} value={fotografa.id} style={{ color: '#111311', backgroundColor: '#111311' }}>{fotografa.nome}</option>
                         ))}
                     </select>
                     {erro && <p className="mb-5 text-sm text-[#d9a07e]" role="alert">{erro}</p>}

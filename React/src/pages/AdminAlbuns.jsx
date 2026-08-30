@@ -274,10 +274,11 @@ export default function AdminAlbuns() {
                                     value={tipoEnsaioId}
                                     onChange={(event) => setTipoEnsaioId(event.target.value)}
                                     className="w-full border-b border-white/20 bg-transparent px-0 py-3 text-base text-[#f2ede4] outline-none focus:border-[#c89662]"
+                                    style={{ colorScheme: 'dark' }}
                                 >
-                                    <option value="">Selecione</option>
+                                    <option value="" style={{ color: '#111311', backgroundColor: '#111311' }}>Selecione</option>
                                     {tiposEnsaio.map((tipo) => (
-                                        <option key={tipo.id} value={tipo.id}>{tipo.nome}</option>
+                                        <option key={tipo.id} value={tipo.id} style={{ color: '#111311', backgroundColor: '#111311' }}>{tipo.nome}</option>
                                     ))}
                                 </select>
                             </div>
@@ -326,10 +327,11 @@ export default function AdminAlbuns() {
                                         value={albumSelecionadoId}
                                         onChange={(event) => setAlbumSelecionadoId(event.target.value)}
                                         className="border-b border-white/20 bg-transparent px-0 py-3 text-sm text-[#f2ede4] outline-none focus:border-[#c89662]"
+                                        style={{ colorScheme: 'dark' }}
                                     >
-                                        <option value="">Selecione um álbum</option>
+                                        <option value="" style={{ color: '#111311', backgroundColor: '#111311' }}>Selecione um álbum</option>
                                         {albuns.map((album) => (
-                                            <option key={album.id} value={album.id}>{album.titulo}</option>
+                                            <option key={album.id} value={album.id} style={{ color: '#111311', backgroundColor: '#111311' }}>{album.titulo}</option>
                                         ))}
                                     </select>
                                 </div>
