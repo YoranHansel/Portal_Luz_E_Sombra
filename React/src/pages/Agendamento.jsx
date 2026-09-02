@@ -128,7 +128,7 @@ export default function Agendamento() {
             const { data: fotografas, error: erroFotografas } = await supabase
                 .from('perfis')
                 .select('id, nome, papel')
-                .eq('papel', 'fotografa')
+                .eq('papel', 'admin')
                 .order('nome');
 
             if (erroFotografas) {
