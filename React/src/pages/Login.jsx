@@ -52,12 +52,16 @@ export default function Login() {
 
         if (adminError) {
             console.error('Não foi possível verificar o perfil administrativo:', adminError);
+            await supabase.auth.signOut();
+            setErro('Não foi possível verificar o perfil administrativo. Confira as policies da tabela admins.');
             setCarregando(false);
-            navigate('/home');
             return;
         }
 
-        if (admin && (!codigoAcesso.trim() || codigoAcesso.trim().toUpperCase() !== admin.codigo_acesso?.trim().toUpperCase())) {
+        const codigoInformado = codigoAcesso.trim().toUpperCase();
+        const codigoCadastrado = admin?.codigo_acesso?.trim().toUpperCase();
+
+        if (admin && (!codigoInformado || codigoInformado !== codigoCadastrado)) {
             await supabase.auth.signOut();
             setErro('Código de acesso administrativo inválido.');
             setCarregando(false);

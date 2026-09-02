@@ -42,7 +42,18 @@ on public.admins (user_id)
 where user_id is not null;
 ```
 
-O campo `codigo_acesso` não é mais usado pela aplicação e pode ser removido depois da migração, caso não seja necessário para outros processos. A associação por `user_id` é o que permite às policies reconhecerem `auth.uid()` como administradora.
+O campo `codigo_acesso` é a segunda etapa do login administrativo e deve permanecer na tabela. A associação por `user_id` é o que permite às policies reconhecerem `auth.uid()` como administradora.
+
+Como o login também valida o código de acesso na tabela `admins`, permita que cada usuário autenticado consulte apenas o próprio registro:
+
+```sql
+alter table public.admins enable row level security;
+
+drop policy if exists "Administradores podem consultar o próprio perfil" on public.admins;
+create policy "Administradores podem consultar o próprio perfil"
+on public.admins for select to authenticated
+using (user_id = (select auth.uid()));
+```
 
 ## Funcionalidades
 
