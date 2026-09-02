@@ -51,9 +51,9 @@ export default function Login() {
             .maybeSingle();
 
         if (adminError) {
-            await supabase.auth.signOut();
-            setErro('Não foi possível verificar o perfil de acesso.');
+            console.error('Não foi possível verificar o perfil administrativo:', adminError);
             setCarregando(false);
+            navigate('/home');
             return;
         }
 
