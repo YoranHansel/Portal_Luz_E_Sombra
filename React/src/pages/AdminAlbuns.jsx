@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { isSupabaseConfigured, supabase } from '../supabase';
+import AlbumForm from '../componets/admin/AlbumForm';
+import PhotosForm from '../componets/admin/PhotosForm';
+import AlbumList from '../componets/admin/AlbumList';
 
 export default function AdminAlbuns() {
     const navigate = useNavigate();
@@ -259,145 +262,31 @@ export default function AdminAlbuns() {
                     <p className="text-[#aaa99f]">Carregando dados do álbum...</p>
                 ) : (
                     <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
-                        <form onSubmit={criarAlbum} className="space-y-5 border border-white/10 bg-white/[0.03] p-6">
-                            <div>
-                                <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.2em] text-[#c89662]">Novo álbum</p>
-                                <label className="mb-2 block font-mono text-[10px] uppercase tracking-[0.18em] text-[#aaa99f]" htmlFor="tituloAlbum">Título</label>
-                                <input
-                                    id="tituloAlbum"
-                                    type="text"
-                                    value={titulo}
-                                    onChange={(event) => setTitulo(event.target.value)}
-                                    className="w-full border-b border-white/20 bg-transparent px-0 py-3 text-base text-[#f2ede4] outline-none placeholder:text-[#77786f] focus:border-[#c89662]"
-                                    placeholder="Ex: Casamento Clara e Gabriel"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="mb-2 block font-mono text-[10px] uppercase tracking-[0.18em] text-[#aaa99f]" htmlFor="tipoAlbum">Tipo de ensaio</label>
-                                <select
-                                    id="tipoAlbum"
-                                    value={tipoEnsaioId}
-                                    onChange={(event) => setTipoEnsaioId(event.target.value)}
-                                    className="w-full border-b border-white/20 bg-transparent px-0 py-3 text-base text-[#f2ede4] outline-none focus:border-[#c89662]"
-                                    style={{ colorScheme: 'dark' }}
-                                >
-                                    <option value="" style={{ color: '#111311', backgroundColor: '#111311' }}>Selecione</option>
-                                    {tiposEnsaio.map((tipo) => (
-                                        <option key={tipo.id} value={tipo.id} style={{ color: '#111311', backgroundColor: '#111311' }}>{tipo.nome}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="mb-2 block font-mono text-[10px] uppercase tracking-[0.18em] text-[#aaa99f]" htmlFor="descricaoAlbum">Descrição</label>
-                                <textarea
-                                    id="descricaoAlbum"
-                                    rows={4}
-                                    value={descricao}
-                                    onChange={(event) => setDescricao(event.target.value)}
-                                    className="w-full border border-white/10 bg-transparent px-4 py-3 text-base text-[#f2ede4] outline-none placeholder:text-[#77786f] focus:border-[#c89662]"
-                                    placeholder="Conte um pouco sobre esse álbum..."
-                                />
-                            </div>
-
-                            <div>
-                                <label className="mb-2 block font-mono text-[10px] uppercase tracking-[0.18em] text-[#aaa99f]" htmlFor="capaAlbum">URL da capa</label>
-                                <input
-                                    id="capaAlbum"
-                                    type="url"
-                                    value={capaUrl}
-                                    onChange={(event) => setCapaUrl(event.target.value)}
-                                    className="w-full border-b border-white/20 bg-transparent px-0 py-3 text-base text-[#f2ede4] outline-none placeholder:text-[#77786f] focus:border-[#c89662]"
-                                    placeholder="https://.../capa.jpg"
-                                />
-                            </div>
-
-                            <button
-                                type="submit"
-                                disabled={enviandoAlbum}
-                                className="w-full bg-[#eee9df] px-6 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-[#111311] transition hover:bg-[#c89662] disabled:cursor-wait disabled:opacity-60"
-                            >
-                                {enviandoAlbum ? 'Criando álbum...' : 'Criar álbum'}
-                            </button>
-                        </form>
+                        <AlbumForm
+                            titulo={titulo}
+                            tipoEnsaioId={tipoEnsaioId}
+                            descricao={descricao}
+                            capaUrl={capaUrl}
+                            tiposEnsaio={tiposEnsaio}
+                            enviando={enviandoAlbum}
+                            onSubmit={criarAlbum}
+                            onTituloChange={(event) => setTitulo(event.target.value)}
+                            onTipoChange={(event) => setTipoEnsaioId(event.target.value)}
+                            onDescricaoChange={(event) => setDescricao(event.target.value)}
+                            onCapaChange={(event) => setCapaUrl(event.target.value)}
+                        />
 
                         <div className="space-y-6">
-                            <form onSubmit={adicionarFotos} className="border border-white/10 bg-white/[0.03] p-6">
-                                <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                                    <div>
-                                        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#c89662]">Adicionar fotos</p>
-                                        <h3 className="mt-2 font-serif text-3xl text-[#f2ede4]">Album selecionado</h3>
-                                    </div>
-                                    <select
-                                        value={albumSelecionadoId}
-                                        onChange={(event) => setAlbumSelecionadoId(event.target.value)}
-                                        className="border-b border-white/20 bg-transparent px-0 py-3 text-sm text-[#f2ede4] outline-none focus:border-[#c89662]"
-                                        style={{ colorScheme: 'dark' }}
-                                    >
-                                        <option value="" style={{ color: '#111311', backgroundColor: '#111311' }}>Selecione um álbum</option>
-                                        {albuns.map((album) => (
-                                            <option key={album.id} value={album.id} style={{ color: '#111311', backgroundColor: '#111311' }}>{album.titulo}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <textarea
-                                    rows={5}
-                                    value={fotosUrls}
-                                    onChange={(event) => setFotosUrls(event.target.value)}
-                                    className="w-full border border-white/10 bg-transparent px-4 py-3 text-base text-[#f2ede4] outline-none placeholder:text-[#77786f] focus:border-[#c89662]"
-                                    placeholder="Cole uma URL por linha:&#10;https://.../foto1.jpg&#10;https://.../foto2.jpg"
-                                />
-                                {fotosUrls.trim() && (
-                                    <p className="mt-3 text-xs text-[#aaa99f]">{fotosUrls.split(/\n/).map((url) => url.trim()).filter(Boolean).length} URL(s) pronta(s) para cadastro</p>
-                                )}
-
-                                <button
-                                    type="submit"
-                                    disabled={enviandoFotos || !albumSelecionadoId}
-                                    className="mt-6 w-full bg-[#eee9df] px-6 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-[#111311] transition hover:bg-[#c89662] disabled:cursor-wait disabled:opacity-60"
-                                >
-                                    {enviandoFotos ? 'Enviando fotos...' : 'Adicionar fotos'}
-                                </button>
-                            </form>
-
-                            <div className="border border-white/10 bg-white/[0.03] p-6">
-                                <p className="mb-5 font-mono text-[10px] uppercase tracking-[0.2em] text-[#c89662]">Álbuns cadastrados</p>
-                                {albuns.length === 0 ? (
-                                    <p className="text-[#77786f]">Nenhum álbum criado ainda.</p>
-                                ) : (
-                                    <div className="space-y-5">
-                                        {albuns.map((album) => (
-                                            <article key={album.id} className="border border-white/10 p-3">
-                                                <div className="flex gap-4">
-                                                    <img
-                                                        src={album.capa_url || 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=800&q=80'}
-                                                        alt={album.titulo}
-                                                        className="h-24 w-24 object-cover"
-                                                    />
-                                                    <div className="flex-1">
-                                                        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#c89662]">{album.tipos_ensaio?.nome || 'Ensaio'}</p>
-                                                        <h4 className="mt-2 font-serif text-2xl text-[#f2ede4]">{album.titulo}</h4>
-                                                        {album.descricao && <p className="mt-2 text-sm text-[#aaa99f]">{album.descricao}</p>}
-                                                        <p className="mt-2 text-[10px] uppercase tracking-[0.18em] text-[#77786f]">{(album.fotos || []).length} fotos</p>
-                                                    </div>
-                                                </div>
-                                                <div className="mt-4 grid grid-cols-3 gap-2">
-                                                    {(album.fotos || []).slice(0, 6).map((foto, index) => (
-                                                        <img
-                                                            key={`${album.id}-${index}`}
-                                                            src={foto.url_imagem}
-                                                            alt={`${album.titulo} ${index + 1}`}
-                                                            className="h-20 w-full object-cover"
-                                                        />
-                                                    ))}
-                                                </div>
-                                            </article>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
+                            <PhotosForm
+                                albumSelecionadoId={albumSelecionadoId}
+                                albuns={albuns}
+                                fotosUrls={fotosUrls}
+                                enviando={enviandoFotos}
+                                onSubmit={adicionarFotos}
+                                onAlbumChange={(event) => setAlbumSelecionadoId(event.target.value)}
+                                onFotosChange={(event) => setFotosUrls(event.target.value)}
+                            />
+                            <AlbumList albuns={albuns} />
                         </div>
                     </div>
                 )}
