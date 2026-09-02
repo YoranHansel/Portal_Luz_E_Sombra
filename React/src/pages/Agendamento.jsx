@@ -128,7 +128,6 @@ export default function Agendamento() {
             const { data: fotografas, error: erroFotografas } = await supabase
                 .from('perfis')
                 .select('id, nome, papel')
-                .eq('papel', 'admin')
                 .order('nome');
 
             if (erroFotografas) {
@@ -137,16 +136,19 @@ export default function Agendamento() {
                 return;
             }
 
+            const perfisFotografas = (fotografas || []).filter((perfil) => (
+                perfil.papel === 'admin' || perfil.papel === 'fotografa'
+            ));
             const dataDisponivel = disponibilidadeData ? disponibilidadeData.disponivel !== false : true;
-            setFotografasDisponiveis(dataDisponivel ? fotografas || [] : []);
+            setFotografasDisponiveis(dataDisponivel ? perfisFotografas : []);
 
             if (!dataDisponivel) {
                 setFotografaSelecionada('');
                 return;
             }
 
-            if (fotografas?.length && !fotografas.some((fotografa) => fotografa.id === fotografaSelecionada)) {
-                setFotografaSelecionada(fotografas[0].id);
+            if (perfisFotografas.length && !perfisFotografas.some((fotografa) => fotografa.id === fotografaSelecionada)) {
+                setFotografaSelecionada(perfisFotografas[0].id);
             }
         }
 
