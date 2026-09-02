@@ -1,8 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { isSupabaseConfigured, supabase } from '../supabase';
-
-const ADMIN_SESSION_KEY = 'luz_sombra_admin_session';
 
 export default function AdminAlbuns() {
     const navigate = useNavigate();
@@ -22,20 +20,34 @@ export default function AdminAlbuns() {
     const [sucesso, setSucesso] = useState('');
 
     useEffect(() => {
-        const dadosSalvos = localStorage.getItem(ADMIN_SESSION_KEY);
+        async function validarAdmin() {
+            if (!isSupabaseConfigured) {
+                navigate('/login', { replace: true });
+                return;
+            }
 
-        if (!dadosSalvos) {
-            navigate('/login', { replace: true });
-            return;
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                navigate('/login', { replace: true });
+                return;
+            }
+
+            const { data, error } = await supabase
+                .from('admins')
+                .select('id, nome, email, user_id')
+                .eq('user_id', user.id)
+                .maybeSingle();
+
+            if (error || !data) {
+                await supabase.auth.signOut();
+                navigate('/login', { replace: true });
+                return;
+            }
+
+            setAdmin(data);
         }
 
-        try {
-            const dados = JSON.parse(dadosSalvos);
-            setAdmin(dados);
-        } catch {
-            localStorage.removeItem(ADMIN_SESSION_KEY);
-            navigate('/login', { replace: true });
-        }
+        validarAdmin();
     }, [navigate]);
 
     useEffect(() => {
@@ -78,14 +90,8 @@ export default function AdminAlbuns() {
         carregarDados();
     }, [admin, albumSelecionadoId]);
 
-    const albumAtual = useMemo(
-        () => albuns.find((album) => album.id === albumSelecionadoId) || null,
-        [albuns, albumSelecionadoId]
-    );
-
     function sair() {
-        localStorage.removeItem(ADMIN_SESSION_KEY);
-        navigate('/login', { replace: true });
+        supabase.auth.signOut().finally(() => navigate('/login', { replace: true }));
     }
 
     function resetMensagens() {

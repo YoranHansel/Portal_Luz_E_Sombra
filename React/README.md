@@ -25,6 +25,25 @@ VITE_SUPABASE_ANON_KEY=sua-chave-anon
 
 Reinicie o servidor de desenvolvimento depois de criar ou alterar o arquivo `.env`.
 
+### Administradores no Supabase Auth
+
+O login administrativo usa email e senha do Supabase Auth. Para cadastrar uma administradora:
+
+1. Crie o usuário em **Authentication > Users > Add user** e defina uma senha.
+2. Copie o UUID desse usuário e associe-o ao registro correspondente em `admins`:
+
+```sql
+update public.admins
+set user_id = 'UUID_DO_USUARIO_NO_AUTH'
+where lower(trim(email)) = lower(trim('email@exemplo.com'));
+
+create unique index if not exists admins_user_id_unique
+on public.admins (user_id)
+where user_id is not null;
+```
+
+O campo `codigo_acesso` não é mais usado pela aplicação e pode ser removido depois da migração, caso não seja necessário para outros processos. A associação por `user_id` é o que permite às policies reconhecerem `auth.uid()` como administradora.
+
 ## Funcionalidades
 
 - A Home carrega os álbuns pela API pública JSONPlaceholder.
