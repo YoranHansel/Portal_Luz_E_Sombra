@@ -125,20 +125,6 @@ export default function Agendamento() {
                 return;
             }
 
-            if (!disponibilidadeData) {
-                const { error: erroCriar } = await supabase.from('disponibilidade').upsert({
-                    data: dataPretendida,
-                    disponivel: true,
-                    motivo: null,
-                }, { onConflict: 'data' });
-
-                if (erroCriar) {
-                    setErro(`Não foi possível registrar a disponibilidade da data: ${erroCriar.message}`);
-                    setFotografasDisponiveis([]);
-                    return;
-                }
-            }
-
             const { data: fotografas, error: erroFotografas } = await supabase
                 .from('perfis')
                 .select('id, nome, papel')
