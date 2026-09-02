@@ -39,7 +39,13 @@ export default function Login() {
         });
 
         if (error) {
-            setErro('Email ou senha incorretos.');
+            console.error('Falha no login pelo Supabase Auth:', error);
+            const mensagemAuth = error.code === 'email_not_confirmed'
+                ? 'Confirme o email do usuário no Supabase Auth antes de entrar.'
+                : error.code === 'invalid_credentials'
+                    ? 'Email ou senha incorretos. Verifique o usuário em Authentication > Users.'
+                    : `Não foi possível entrar: ${error.message}`;
+            setErro(mensagemAuth);
             setCarregando(false);
             return;
         }
